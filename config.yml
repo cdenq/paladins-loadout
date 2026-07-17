@@ -1,0 +1,137 @@
+# Lian, Tyra, Viktor, Willo, Zhin, Skye, Buck
+
+hotkey: f1
+
+timings:
+  short_load: 0.3
+  med_load: 0.8    
+  long_load: 1.55     
+  click_load: 0.15
+  special_load: 0.3  # UNUSED
+
+classes:
+  Damage:
+    - name: Betty La Bomba
+      enabled: false
+    - name: Bomb King
+      enabled: false
+    - name: Cassie
+      enabled: true
+    - name: Dredge
+      enabled: false
+    - name: Drogoz
+      enabled: false
+    - name: Imani
+      enabled: false
+    - name: Kinessa
+      enabled: false
+    - name: Lian
+      enabled: true
+    - name: Octavia
+      enabled: false
+    - name: Omen
+      enabled: false
+    - name: Saati
+      enabled: false
+    - name: Sha Lin
+      enabled: false
+    - name: Strix
+      enabled: false
+    - name: Tiberius
+      enabled: false
+    - name: Tyra
+      enabled: true
+    - name: Viktor
+      enabled: true
+    - name: Vivian
+      enabled: true
+    - name: Willo
+      enabled: true
+
+  Flank:
+    - name: Androxus
+      enabled: false
+    - name: Buck
+      enabled: true
+    - name: Caspian
+      enabled: false
+    - name: Evie
+      enabled: false
+    - name: Kasumi
+      enabled: false
+    - name: Koga
+      enabled: false
+    - name: Lex
+      enabled: false
+    - name: Maeve
+      enabled: false
+    - name: Skye
+      enabled: true
+    - name: Talus
+      enabled: true
+    - name: VII
+      enabled: false
+    - name: Vatu
+      enabled: false
+    - name: Vora
+      enabled: false
+    - name: Zhin
+      enabled: true
+
+  Frontline:
+    - name: Ash
+      enabled: true
+    - name: Atlas
+      enabled: false
+    - name: Azaan
+      enabled: false
+    - name: Barik
+      enabled: true
+    - name: Fernando
+      enabled: true
+    - name: Inara
+      enabled: false
+    - name: Khan
+      enabled: true
+    - name: Makoa
+      enabled: true
+    - name: Nyx
+      enabled: false
+    - name: Raum
+      enabled: false
+    - name: Ruckus
+      enabled: false
+    - name: Terminus
+      enabled: true
+    - name: Torvald
+      enabled: true
+    - name: Yagorath
+      enabled: false
+
+  Support:
+    - name: Corvus
+      enabled: false
+    - name: Furia
+      enabled: true
+    - name: Grohk
+      enabled: false
+    - name: Grover
+      enabled: true
+    - name: Io
+      enabled: false
+    - name: Jenos
+      enabled: true
+    - name: Lillith
+      enabled: false
+    - name: Mal'Damba
+      enabled: false
+    - name: Moji
+      enabled: false
+    - name: Pip
+      enabled: false
+    - name: Rei
+      enabled: false
+    - name: Seris
+      enabled: true
+    - name: Ying
+      enabled: false

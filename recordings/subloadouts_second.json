@@ -1,0 +1,30 @@
+[
+  {
+    "t": 1.7474191000219434,
+    "type": "click",
+    "x": 1030,
+    "y": 738,
+    "button": "left",
+    "pressed": true
+  },
+  {
+    "t": 1.8765075000119396,
+    "type": "click",
+    "x": 1030,
+    "y": 738,
+    "button": "left",
+    "pressed": false
+  },
+  {
+    "t": 3.7268793000257574,
+    "type": "key",
+    "key": "char:1",
+    "pressed": true
+  },
+  {
+    "t": 3.783722000021953,
+    "type": "key",
+    "key": "char:1",
+    "pressed": false
+  }
+]

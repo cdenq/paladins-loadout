@@ -1,0 +1,235 @@
+"""Tkinter GUI: a menu of toggleable champion buttons grouped by class,
+plus an Import button (also triggerable via a global hotkey).
+
+Button colors:
+  - light green: eligible and toggled ON
+  - light red:   eligible and toggled OFF
+  - light gray:  not eligible (config.yml enabled: false) -- not clickable
+"""
+
+from __future__ import annotations
+
+import threading
+import tkinter as tk
+from tkinter import messagebox
+
+from src.config import CLASS_ORDER, Config, load_config
+from src.hotkey import GlobalHotkey
+from src.interrupt import RunStopped
+from src.interrupt import reset as reset_stop
+from src.interrupt import request_stop
+from src.runner import run_import
+from src.state import ToggleState
+
+COLOR_ON = "#a6e3a1"
+COLOR_OFF = "#f2a6a6"
+COLOR_DISABLED = "#d3d3d3"
+
+# While the real script phases are still stubs (see src/scripts/), set this
+# to True so Import just prints "clicked" instead of running them against
+# a game window. Flip to False once coordinates are filled in.
+DEV_MODE = False
+
+
+class App:
+    def __init__(self, root: tk.Tk):
+        self.root = root
+        self.root.title("Paladins Loadout Importer")
+
+        self.config: Config = load_config()
+        self.state = ToggleState(self.config)
+
+        self._buttons: dict[str, tk.Button] = {}
+        self._running = False
+
+        self._build_layout()
+
+        self.hotkey = GlobalHotkey(self.config.hotkey, self._handle_hotkey_threadsafe)
+        self.hotkey.start()
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    # ---- layout ----------------------------------------------------
+
+    def _build_layout(self) -> None:
+        top = tk.Frame(self.root)
+        top.pack(fill="x", padx=8, pady=(8, 4))
+
+        tk.Label(top, text="Source Account Name:").pack(side="left")
+        self.account_var = tk.StringVar(value="TofuCookie")
+        tk.Entry(top, textvariable=self.account_var, width=24).pack(side="left", padx=(4, 0))
+
+        global_controls = tk.Frame(self.root)
+        global_controls.pack(fill="x", padx=8, pady=4)
+        tk.Button(global_controls, text="Toggle All On", command=lambda: self._set_all(True)).pack(side="left")
+        tk.Button(global_controls, text="Toggle All Off", command=lambda: self._set_all(False)).pack(side="left", padx=(4, 0))
+
+        classes_frame = tk.Frame(self.root)
+        classes_frame.pack(fill="both", expand=True, padx=8, pady=4)
+        classes_frame.columnconfigure(0, weight=1)
+        classes_frame.columnconfigure(1, weight=1)
+
+        for i, cls in enumerate(CLASS_ORDER):
+            self._build_class_section(classes_frame, cls, row=i // 2, column=i % 2)
+
+        run_frame = tk.Frame(self.root)
+        run_frame.pack(fill="x", padx=8, pady=8)
+
+        # "Setup Needed" toggle: on (default) runs the one-time in-game
+        # setup phase before importing; off skips straight to imports.
+        self.setup_needed = True
+        self.setup_needed_button = tk.Button(
+            run_frame,
+            text="Setup Needed: ON",
+            bg=COLOR_ON,
+            command=self._toggle_setup_needed,
+        )
+        self.setup_needed_button.pack(fill="x", pady=(0, 4))
+
+        self.import_button = tk.Button(
+            run_frame,
+            text=f"Import ({self.config.hotkey.upper()})",
+            bg="#89b4fa",
+            font=("Segoe UI", 12, "bold"),
+            command=self._handle_hotkey_threadsafe,
+        )
+        self.import_button.pack(fill="x")
+
+        self.status_var = tk.StringVar(value="Ready.")
+        tk.Label(self.root, textvariable=self.status_var, anchor="w").pack(fill="x", padx=8, pady=(0, 8))
+
+    def _build_class_section(self, parent: tk.Widget, cls: str, row: int, column: int) -> None:
+        section = tk.LabelFrame(parent, text=cls, padx=6, pady=6)
+        section.grid(row=row, column=column, padx=4, pady=4, sticky="nsew")
+
+        section_controls = tk.Frame(section)
+        section_controls.pack(fill="x", pady=(0, 4))
+        tk.Button(section_controls, text="Section On", command=lambda: self._set_section(cls, True)).pack(side="left")
+        tk.Button(section_controls, text="Section Off", command=lambda: self._set_section(cls, False)).pack(side="left", padx=(4, 0))
+
+        grid = tk.Frame(section)
+        grid.pack(fill="x")
+
+        champs = self.config.by_class(cls)
+        columns = 2
+        for i, champ in enumerate(champs):
+            btn = tk.Button(grid, text=champ.name, width=16)
+            if champ.enabled:
+                btn.configure(command=lambda c=champ: self._toggle(c))
+            self._buttons[champ.name] = btn
+            btn.grid(row=i // columns, column=i % columns, padx=2, pady=2)
+
+        self._refresh_class(cls)
+
+    # ---- button state ----------------------------------------------
+
+    def _refresh_class(self, cls: str) -> None:
+        for champ in self.config.by_class(cls):
+            self._refresh_button(champ.name)
+
+    def _refresh_all(self) -> None:
+        for name in self._buttons:
+            self._refresh_button(name)
+
+    def _refresh_button(self, name: str) -> None:
+        champ = next(c for c in self.config.champions if c.name == name)
+        btn = self._buttons[name]
+        if not champ.enabled:
+            btn.configure(bg=COLOR_DISABLED, state="disabled")
+        else:
+            btn.configure(state="normal")
+            btn.configure(bg=COLOR_ON if self.state.is_on(champ) else COLOR_OFF)
+
+    def _toggle(self, champ) -> None:
+        self.state.toggle(champ)
+        self._refresh_button(champ.name)
+
+    def _set_all(self, on: bool) -> None:
+        self.state.set_all(on)
+        self._refresh_all()
+
+    def _set_section(self, cls: str, on: bool) -> None:
+        self.state.set_section(cls, on)
+        self._refresh_class(cls)
+
+    def _toggle_setup_needed(self) -> None:
+        self.setup_needed = not self.setup_needed
+        if self.setup_needed:
+            self.setup_needed_button.configure(text="Setup Needed: ON", bg=COLOR_ON)
+        else:
+            self.setup_needed_button.configure(text="Setup Needed: OFF", bg=COLOR_OFF)
+
+    # ---- import run --------------------------------------------------
+
+    def _handle_hotkey_threadsafe(self) -> None:
+        # Hotkey fires on pynput's listener thread; hop back to the Tk
+        # main thread before touching any widgets. F1 (or the button)
+        # starts a run when idle, or requests a stop when one is running.
+        self.root.after(0, self._handle_hotkey)
+
+    def _handle_hotkey(self) -> None:
+        if self._running:
+            self._stop_import()
+        else:
+            self._start_import()
+
+    def _start_import(self) -> None:
+        if DEV_MODE:
+            print("clicked")
+            return
+
+        selected = self.state.selected_champions()
+        if not selected:
+            messagebox.showinfo("Nothing to import", "No champions are toggled on.")
+            return
+        if not self.account_var.get().strip():
+            messagebox.showwarning("Missing account name", "Enter the source account name first.")
+            return
+
+        reset_stop()
+        self._running = True
+        self.import_button.configure(text=f"Stop ({self.config.hotkey.upper()})", bg=COLOR_OFF)
+        self.status_var.set(f"Importing 0/{len(selected)}...")
+
+        thread = threading.Thread(target=self._run_import_worker, args=(selected,), daemon=True)
+        thread.start()
+
+    def _stop_import(self) -> None:
+        self.status_var.set("Stopping...")
+        request_stop()
+
+    def _run_import_worker(self, selected) -> None:
+        account_name = self.account_var.get().strip()
+        total = len(selected)
+        count = {"done": 0}
+
+        def on_progress(champ):
+            count["done"] += 1
+            print(f"Imported {champ.name}.")
+            self.root.after(0, lambda: self.status_var.set(f"Importing {count['done']}/{total}... ({champ.name})"))
+
+        try:
+            run_import(self.state, account_name, setup_needed=self.setup_needed, on_progress=on_progress)
+            print(f"Done. Imported {total} champion(s).")
+            self.root.after(0, lambda: self.status_var.set(f"Done. Imported {total} champion(s)."))
+        except RunStopped:
+            self.root.after(0, lambda: self.status_var.set(f"Stopped after {count['done']}/{total}."))
+        except Exception as exc:  # surface script errors instead of failing silently
+            self.root.after(0, lambda: self.status_var.set(f"Error: {exc}"))
+        finally:
+            self.root.after(0, self._finish_import)
+
+    def _finish_import(self) -> None:
+        self._running = False
+        self.import_button.configure(text=f"Import ({self.config.hotkey.upper()})", bg="#89b4fa")
+
+    # ---- lifecycle ---------------------------------------------------
+
+    def _on_close(self) -> None:
+        self.hotkey.stop()
+        self.root.destroy()
+
+
+def launch() -> None:
+    root = tk.Tk()
+    App(root)
+    root.mainloop()

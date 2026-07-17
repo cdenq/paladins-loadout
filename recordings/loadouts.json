@@ -1,0 +1,162 @@
+[
+  {
+    "t": 1.684241499984637,
+    "type": "click",
+    "x": 1156,
+    "y": 79,
+    "button": "left",
+    "pressed": true
+  },
+  {
+    "t": 1.7912368999968749,
+    "type": "click",
+    "x": 1156,
+    "y": 79,
+    "button": "left",
+    "pressed": false
+  },
+  {
+    "t": 3.2923198000062257,
+    "type": "click",
+    "x": 537,
+    "y": 363,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 3.3813329999975394,
+    "type": "click",
+    "x": 537,
+    "y": 363,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 4.298271100007696,
+    "type": "click",
+    "x": 968,
+    "y": 354,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 4.413290099997539,
+    "type": "click",
+    "x": 966,
+    "y": 356,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 5.1333231999888085,
+    "type": "click",
+    "x": 1408,
+    "y": 362,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 5.2294386999856215,
+    "type": "click",
+    "x": 1408,
+    "y": 362,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 6.4753599999821745,
+    "type": "click",
+    "x": 536,
+    "y": 604,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 6.574331099982373,
+    "type": "click",
+    "x": 538,
+    "y": 604,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 7.81134519999614,
+    "type": "click",
+    "x": 965,
+    "y": 602,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 7.917414800002007,
+    "type": "click",
+    "x": 965,
+    "y": 602,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 8.654350600001635,
+    "type": "click",
+    "x": 1415,
+    "y": 603,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 8.76070620000246,
+    "type": "click",
+    "x": 1415,
+    "y": 603,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 9.990453599981265,
+    "type": "click",
+    "x": 519,
+    "y": 850,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 10.090422699984629,
+    "type": "click",
+    "x": 522,
+    "y": 850,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 11.015446799981873,
+    "type": "click",
+    "x": 962,
+    "y": 846,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 11.115475200000219,
+    "type": "click",
+    "x": 962,
+    "y": 846,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 12.120519599993713,
+    "type": "click",
+    "x": 1404,
+    "y": 848,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 12.238540099991951,
+    "type": "click",
+    "x": 1404,
+    "y": 848,
+    "button": "right",
+    "pressed": false
+  }
+]
