@@ -7,6 +7,7 @@ Bulk Paladins loadout importer from a source account with GUI.
 ## Prerequisites
 
 - Windows
+- GitBash
 - Python 3.13+
 - Paladins running in **borderless windowed mode** on your primary monitor
 
