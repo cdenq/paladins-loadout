@@ -12,49 +12,41 @@ Bulk Paladins loadout importer from a source account with GUI.
 
 ## Installation
 
-### uv (recommended)
+### run.bat (easiest)
+
+Double-click **`run.bat`**. It automatically installs [uv](https://astral.sh/uv) if needed, syncs all dependencies, and then launches the app.
+
+### Manual via CLI
+
+Three ways to install: via `uv`, `conda`, `pip`.
 
 ```bash
+# uv (recommended)
 curl -LsSf https://astral.sh/uv/install.sh | sh # if uv not installed
-uv sync
+uv sync # create environment
+uv run python main.py # run app
 ```
 
-Run with:
-
 ```bash
-uv run python main.py
-```
-
-### pip
-
-```bash
-python -m venv .venv
-source .venv/Scripts/activate
-pip install -e .
-```
-
-Then run:
-
-```bash
-python main.py
-```
-
-### conda
-
-```bash
+# conda
 conda create -n paladins-loadout python=3.13
 conda activate paladins-loadout
 pip install -e .
+python main.py
 ```
 
-Then run:
-
 ```bash
+# pip
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -e .
 python main.py
 ```
 
 ## Usage
 
-1. Be in the Paladins homescreen. Configure settings in GUI and hit F1.
-2. Wait for things to load.
-3. If imports mess up, then delay time between clicks is too short. Edit these in config.yml to be longer to ensure that menus load ingame before you click.
+1. Be in the Paladins homescreen + configure settings in GUI.
+2. Click "import" or hit F1.
+
+## Import messes up?
+If imports mess up, then delay time between clicks is too short. Edit these in config.yml to be longer to ensure that menus load ingame before you click.
