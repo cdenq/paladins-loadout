@@ -9,6 +9,7 @@ Button colors:
 
 from __future__ import annotations
 
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
@@ -26,7 +27,17 @@ COLOR_ON = "#a6e3a1"
 COLOR_OFF = "#f2a6a6"
 COLOR_DISABLED = "#d3d3d3"
 
-LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "tofu.png"
+
+def _resource_dir() -> Path:
+    """Directory bundled read-only assets live in: PyInstaller's extraction
+    dir when frozen, otherwise the project root."""
+    base = getattr(sys, "_MEIPASS", None)
+    if base is not None:
+        return Path(base)
+    return Path(__file__).resolve().parent.parent
+
+
+LOGO_PATH = _resource_dir() / "assets" / "tofu.png"
 
 # When True, Import prints "clicked" instead of driving the game window.
 DEV_MODE = False
