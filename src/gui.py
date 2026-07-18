@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import threading
 import tkinter as tk
+from pathlib import Path
 from tkinter import messagebox
 
 from src.config import CLASS_ORDER, Config, load_config
@@ -19,15 +20,15 @@ from src.interrupt import RunStopped
 from src.interrupt import reset as reset_stop
 from src.interrupt import request_stop
 from src.runner import run_import
-from src.state import ToggleState
+from src.state import NUM_LOADOUT_SLOTS, ToggleState
 
 COLOR_ON = "#a6e3a1"
 COLOR_OFF = "#f2a6a6"
 COLOR_DISABLED = "#d3d3d3"
 
-# While the real script phases are still stubs (see src/scripts/), set this
-# to True so Import just prints "clicked" instead of running them against
-# a game window. Flip to False once coordinates are filled in.
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "tofu.png"
+
+# When True, Import prints "clicked" instead of driving the game window.
 DEV_MODE = False
 
 
@@ -53,23 +54,81 @@ class App:
     def _build_layout(self) -> None:
         top = tk.Frame(self.root)
         top.pack(fill="x", padx=8, pady=(8, 4))
+        top.columnconfigure(0, weight=1)
+        top.columnconfigure(1, weight=1)
 
-        tk.Label(top, text="Source Account Name:").pack(side="left")
+        left = tk.Frame(top)
+        left.grid(row=0, column=0, sticky="nw", padx=(0, 4))
+        right = tk.Frame(top)
+        right.grid(row=0, column=1, sticky="nw", padx=(4, 0))
+
+        self._load_logo(left)
+
+        account_row = tk.Frame(left)
+        account_row.pack(fill="x", pady=(6, 0))
+        tk.Label(account_row, text="Source Username:").pack(side="left")
         self.account_var = tk.StringVar(value=self.config.default_username)
-        tk.Entry(top, textvariable=self.account_var, width=24).pack(side="left", padx=(4, 0))
+        tk.Entry(account_row, textvariable=self.account_var, width=24).pack(side="left", padx=(4, 0))
 
-        global_controls = tk.Frame(self.root)
-        global_controls.pack(fill="x", padx=8, pady=4)
+        global_controls = tk.Frame(left)
+        global_controls.pack(fill="x", pady=(6, 0))
         tk.Button(global_controls, text="Toggle All On", command=lambda: self._set_all(True)).pack(side="left")
         tk.Button(global_controls, text="Toggle All Off", command=lambda: self._set_all(False)).pack(side="left", padx=(4, 0))
 
+        # Shown only in specific-loadout mode; empty (hidden) otherwise.
+        self.banner_var = tk.StringVar(value="")
+        self.banner_label = tk.Label(
+            right,
+            textvariable=self.banner_var,
+            fg="#b45309",
+            font=("Segoe UI", 9, "bold"),
+            wraplength=380,
+            justify="left",
+        )
+        self.banner_label.pack(fill="x", pady=(0, 2))
+
+        # When on, only one champion may be selected and only the chosen
+        # loadout slots (below) are imported.
+        self.specific_mode_button = tk.Button(
+            right,
+            text="Specific Loadouts Only: OFF",
+            bg=COLOR_OFF,
+            command=self._toggle_specific_mode,
+        )
+        self.specific_mode_button.pack(fill="x", pady=(0, 4))
+
+        # 3x3 grid of loadout-slot chips (1-3 / 4-6 / 7-9). The inner frame
+        # keeps the grid centered under the toggle rather than left-aligned.
+        self.slots_frame = tk.Frame(right)
+        self.slots_frame.pack(fill="x", pady=(0, 4))
+        slots_grid = tk.Frame(self.slots_frame)
+        slots_grid.pack(anchor="center")
+        slot_columns = 3
+        self._slot_buttons: list[tk.Button] = []
+        for slot_index in range(NUM_LOADOUT_SLOTS):
+            btn = tk.Button(
+                slots_grid,
+                text=str(slot_index + 1),
+                width=3,
+                command=lambda i=slot_index: self._toggle_slot(i),
+            )
+            btn.grid(
+                row=slot_index // slot_columns,
+                column=slot_index % slot_columns,
+                padx=1,
+                pady=1,
+            )
+            self._slot_buttons.append(btn)
+        self._refresh_slots()
+
         classes_frame = tk.Frame(self.root)
         classes_frame.pack(fill="both", expand=True, padx=8, pady=4)
-        classes_frame.columnconfigure(0, weight=1)
-        classes_frame.columnconfigure(1, weight=1)
+        columns = 2
+        for col in range(columns):
+            classes_frame.columnconfigure(col, weight=1)
 
         for i, cls in enumerate(CLASS_ORDER):
-            self._build_class_section(classes_frame, cls, row=i // 2, column=i % 2)
+            self._build_class_section(classes_frame, cls, row=i // columns, column=i % columns)
 
         run_frame = tk.Frame(self.root)
         run_frame.pack(fill="x", padx=8, pady=8)
@@ -97,6 +156,24 @@ class App:
         self.status_var = tk.StringVar(value="Ready.")
         tk.Label(self.root, textvariable=self.status_var, anchor="w").pack(fill="x", padx=8, pady=(0, 8))
 
+    def _load_logo(self, parent: tk.Widget) -> None:
+        """Show assets/tofu.png as a logo in the top bar and as the window icon.
+        Skips silently if the file is missing or unreadable."""
+        try:
+            img = tk.PhotoImage(file=str(LOGO_PATH))
+        except Exception:
+            return
+
+        # Shrink to ~70px wide. subsample divides by an integer factor.
+        factor = max(1, img.width() // 70)
+        self._logo_image = img.subsample(factor, factor)  # keep a ref so Tk doesn't GC it
+        tk.Label(parent, image=self._logo_image).pack(side="left", padx=(0, 8))
+
+        try:
+            self.root.iconphoto(True, self._logo_image)
+        except Exception:
+            pass
+
     def _build_class_section(self, parent: tk.Widget, cls: str, row: int, column: int) -> None:
         section = tk.LabelFrame(parent, text=cls, padx=6, pady=6)
         section.grid(row=row, column=column, padx=4, pady=4, sticky="nsew")
@@ -110,7 +187,7 @@ class App:
         grid.pack(fill="x")
 
         champs = self.config.by_class(cls)
-        columns = 2
+        columns = 3
         for i, champ in enumerate(champs):
             btn = tk.Button(grid, text=champ.name, width=16)
             if champ.enabled:
@@ -141,7 +218,12 @@ class App:
 
     def _toggle(self, champ) -> None:
         self.state.toggle(champ)
-        self._refresh_button(champ.name)
+        # In specific mode, selecting a champion deselects any previous one, so
+        # refresh every button rather than just the one clicked.
+        if self.state.specific_mode:
+            self._refresh_all()
+        else:
+            self._refresh_button(champ.name)
 
     def _set_all(self, on: bool) -> None:
         self.state.set_all(on)
@@ -151,12 +233,44 @@ class App:
         self.state.set_section(cls, on)
         self._refresh_class(cls)
 
-    def _toggle_setup_needed(self) -> None:
-        self.setup_needed = not self.setup_needed
-        if self.setup_needed:
+    def _set_setup_needed(self, on: bool) -> None:
+        self.setup_needed = on
+        if on:
             self.setup_needed_button.configure(text="Setup Needed: ON", bg=COLOR_ON)
         else:
             self.setup_needed_button.configure(text="Setup Needed: OFF", bg=COLOR_OFF)
+
+    def _toggle_setup_needed(self) -> None:
+        self._set_setup_needed(not self.setup_needed)
+
+    def _toggle_specific_mode(self) -> None:
+        on = not self.state.specific_mode
+        # Entering the mode clears all champion selections (only one allowed).
+        self.state.set_specific_mode(on)
+        if on:
+            self.specific_mode_button.configure(text="Specific Loadouts Only: ON", bg=COLOR_ON)
+            self.banner_var.set(
+                "For this mode, only ONE champion can be imported at a time."
+            )
+        else:
+            self.specific_mode_button.configure(text="Specific Loadouts Only: OFF", bg=COLOR_OFF)
+            self.banner_var.set("")
+        self._refresh_all()
+        self._refresh_slots()
+
+    def _toggle_slot(self, slot_index: int) -> None:
+        self.state.toggle_slot(slot_index)
+        self._refresh_slots()
+
+    def _refresh_slots(self) -> None:
+        """Color the 9 slot chips; disable them entirely outside specific mode."""
+        enabled = self.state.specific_mode
+        for slot_index, btn in enumerate(self._slot_buttons):
+            if not enabled:
+                btn.configure(state="disabled", bg=COLOR_DISABLED)
+            else:
+                btn.configure(state="normal")
+                btn.configure(bg=COLOR_ON if self.state.is_slot_on(slot_index) else COLOR_OFF)
 
     # ---- import run --------------------------------------------------
 
@@ -185,19 +299,27 @@ class App:
             messagebox.showwarning("Missing account name", "Enter the source account name first.")
             return
 
+        # In specific mode, run only the chosen loadout slots (default: all 9).
+        slot_indices = self.state.selected_slots() if self.state.specific_mode else None
+        if self.state.specific_mode and not slot_indices:
+            messagebox.showwarning("No loadouts selected", "Pick at least one loadout slot to import.")
+            return
+
         reset_stop()
         self._running = True
         self.import_button.configure(text=f"Stop ({self.config.hotkey.upper()})", bg=COLOR_OFF)
         self.status_var.set(f"Importing 0/{len(selected)}...")
 
-        thread = threading.Thread(target=self._run_import_worker, args=(selected,), daemon=True)
+        thread = threading.Thread(
+            target=self._run_import_worker, args=(selected, slot_indices), daemon=True
+        )
         thread.start()
 
     def _stop_import(self) -> None:
         self.status_var.set("Stopping...")
         request_stop()
 
-    def _run_import_worker(self, selected) -> None:
+    def _run_import_worker(self, selected, slot_indices=None) -> None:
         account_name = self.account_var.get().strip()
         total = len(selected)
         count = {"done": 0}
@@ -208,7 +330,13 @@ class App:
             self.root.after(0, lambda: self.status_var.set(f"Importing {count['done']}/{total}... ({champ.name})"))
 
         try:
-            run_import(self.state, account_name, setup_needed=self.setup_needed, on_progress=on_progress)
+            run_import(
+                self.state,
+                account_name,
+                setup_needed=self.setup_needed,
+                on_progress=on_progress,
+                slot_indices=slot_indices,
+            )
             print(f"Done. Imported {total} champion(s).")
             self.root.after(0, lambda: self.status_var.set(f"Done. Imported {total} champion(s)."))
         except RunStopped:
@@ -221,6 +349,9 @@ class App:
     def _finish_import(self) -> None:
         self._running = False
         self.import_button.configure(text=f"Import ({self.config.hotkey.upper()})", bg="#89b4fa")
+        # Setup runs once per session, so turn it off after the first run.
+        if self.setup_needed:
+            self._set_setup_needed(False)
 
     # ---- lifecycle ---------------------------------------------------
 

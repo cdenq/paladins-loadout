@@ -14,23 +14,10 @@ where uv >nul 2>&1
 if %ERRORLEVEL%==0 (
     echo [1/3] uv is already installed.
 ) else (
-    echo [1/3] uv not found. Installing uv via Git Bash...
+    echo [1/3] uv not found. Installing uv...
 
-    rem Locate a Git Bash executable
-    set "BASH_EXE="
-    if exist "%ProgramFiles%\Git\bin\bash.exe" set "BASH_EXE=%ProgramFiles%\Git\bin\bash.exe"
-    if not defined BASH_EXE if exist "%ProgramFiles(x86)%\Git\bin\bash.exe" set "BASH_EXE=%ProgramFiles(x86)%\Git\bin\bash.exe"
-    if not defined BASH_EXE if exist "%LocalAppData%\Programs\Git\bin\bash.exe" set "BASH_EXE=%LocalAppData%\Programs\Git\bin\bash.exe"
-
-    if not defined BASH_EXE (
-        echo.
-        echo ERROR: Git Bash was not found. Install Git for Windows from
-        echo https://git-scm.com/download/win, or install uv manually from
-        echo https://astral.sh/uv
-        goto :fail
-    )
-
-    "%BASH_EXE%" -lc "curl -LsSf https://astral.sh/uv/install.sh | sh"
+    rem PowerShell ships with every Windows machine, so this needs no other tools.
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
     if %ERRORLEVEL% NEQ 0 (
         echo.
         echo ERROR: Failed to install uv. Please install it manually from https://astral.sh/uv

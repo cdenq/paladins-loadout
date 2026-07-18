@@ -61,7 +61,7 @@ classes:
     - name: Koga
       enabled: false
     - name: Lex
-      enabled: false
+      enabled: true
     - name: Maeve
       enabled: false
     - name: Skye

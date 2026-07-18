@@ -18,8 +18,11 @@ FILTER_BOX = (661, 215)
 BY_NAME_BOX = (644, 406)
 
 
-def run_setup() -> None:
-    """Navigate to the loadout-import starting screen."""
+def click_champions() -> None:
+    """Open the Champions screen."""
     click(*CHAMPIONS_TAB, delay=SHORT_LOAD)
+
+def run_setup() -> None:
+    """Set the champion filter to search by name."""
     click(*FILTER_BOX, delay=CLICK_LOAD)
     click(*BY_NAME_BOX, delay=CLICK_LOAD)

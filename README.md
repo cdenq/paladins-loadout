@@ -7,25 +7,26 @@ Bulk Paladins loadout importer from a source account with GUI.
 ## Prerequisites
 
 - Windows
-- GitBash
-- Python 3.13+
 - Paladins running in **borderless windowed mode** on your primary monitor
+
+The **`run.bat`** method below needs nothing else pre-installed. The manual CLI
+methods additionally require Python 3.13+.
 
 ## Installation
 
 ### run.bat (easiest)
 
-Double-click **`run.bat`**. It automatically installs [uv](https://astral.sh/uv) if needed, syncs all dependencies, and then launches the app.
+Double-click **`run.bat`**. It will install `uv` if you don't have it and then launch the app.
 
 ### Manual via CLI
 
 Three ways to install: via `uv`, `conda`, `pip`.
 
 ```bash
-# uv (recommended)
+# uv + gitbash (recommended)
 curl -LsSf https://astral.sh/uv/install.sh | sh # if uv not installed
-uv sync # create environment
-uv run python main.py # run app
+uv sync
+uv run python main.py
 ```
 
 ```bash
