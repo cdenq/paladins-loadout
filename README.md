@@ -2,31 +2,28 @@
 
 # Tofu's Paladins Loadout Importer
 
-Bulk Paladins loadout importer from a source account with GUI.
+Bulk Paladins loadout importer from a source account with GUI. It'll automate your mouse clicks to import selected champion loadouts from a target account.
 
 ## Prerequisites
 
 - Windows
-- Paladins running in **borderless windowed mode** on your primary monitor
+- Monitor 1920x1080 resolution
+- Paladins on primary monitor, at Home Screen
 
 ## Installation
 
-### Download the app (easiest, no setup)
-
-Download **`PaladinsLoadout.exe`** and double-click it. Nothing else to install —
-no Python, no internet, no terminal. On first launch it creates a `config.yml`
-next to the `.exe` that you can edit (champion roster, timings, username).
+### Easiest
+Download **`PaladinsLoadout.exe`**; double-click to run, edit `config.yml` to change the timings.
 
 > On first run Windows may show a blue "Windows protected your PC" screen (the
 > app isn't code-signed). Click **More info -> Run anyway**.
 
-### run.bat (runs from source)
+### Manual
 
-Double-click **`run.bat`**. It will install `uv` if you don't have it and then launch the app.
+Use `run.bat`
+> Double-click **`run.bat`**. It will install `uv` if you don't have it and then launch the app.
 
-### Manual via CLI
-
-Three ways to install: via `uv`, `conda`, `pip`.
+Use CLI: three ways to install: via `uv`, `conda`, `pip`.
 
 ```bash
 # uv + gitbash (recommended)
@@ -53,14 +50,10 @@ python main.py
 
 ## Usage
 
-1. Be in the Paladins homescreen + configure settings in GUI.
-2. Click "import" or hit F1.
-
-## Building the .exe (for maintainers)
-
-Double-click **`build.bat`** (needs `uv`). It syncs deps, generates the window
-icon from `assets/tofu.png`, and produces a single-file `dist/PaladinsLoadout.exe`.
-Ship that one file.
+1. Monitor resolution 1920x1080
+2. Paladins fullscreen or borderless windowed
+3. Paladins @ the home screen
+2. Click "import" or hit F1 (default hotkey)
 
 ## Import messes up?
 If imports mess up, then delay time between clicks is too short. Edit these in config.yml to be longer to ensure that menus load ingame before you click.
