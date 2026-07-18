@@ -1,6 +1,5 @@
-# Lian, Tyra, Viktor, Willo, Zhin, Skye, Buck
-
 hotkey: f1
+default_username: "TofuCookie"
 
 timings:
   short_load: 0.3
@@ -90,7 +89,7 @@ classes:
     - name: Fernando
       enabled: true
     - name: Inara
-      enabled: false
+      enabled: true
     - name: Khan
       enabled: true
     - name: Makoa
@@ -100,7 +99,7 @@ classes:
     - name: Raum
       enabled: false
     - name: Ruckus
-      enabled: false
+      enabled: true
     - name: Terminus
       enabled: true
     - name: Torvald
@@ -128,7 +127,7 @@ classes:
     - name: Moji
       enabled: false
     - name: Pip
-      enabled: false
+      enabled: true
     - name: Rei
       enabled: false
     - name: Seris

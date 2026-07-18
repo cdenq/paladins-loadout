@@ -55,7 +55,7 @@ class App:
         top.pack(fill="x", padx=8, pady=(8, 4))
 
         tk.Label(top, text="Source Account Name:").pack(side="left")
-        self.account_var = tk.StringVar(value="TofuCookie")
+        self.account_var = tk.StringVar(value=self.config.default_username)
         tk.Entry(top, textvariable=self.account_var, width=24).pack(side="left", padx=(4, 0))
 
         global_controls = tk.Frame(self.root)

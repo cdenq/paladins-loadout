@@ -32,6 +32,7 @@ class Champion:
 @dataclass
 class Config:
     hotkey: str
+    default_username: str = ""
     timings: dict[str, float] = field(default_factory=lambda: dict(DEFAULT_TIMINGS))
     champions: list[Champion] = field(default_factory=list)
 
@@ -53,7 +54,12 @@ def load_config(path: Path = CONFIG_PATH) -> Config:
     timings = dict(DEFAULT_TIMINGS)
     timings.update(raw.get("timings", {}))
 
-    return Config(hotkey=raw.get("hotkey", "f1"), timings=timings, champions=champions)
+    return Config(
+        hotkey=raw.get("hotkey", "f1"),
+        default_username=raw.get("default_username", ""),
+        timings=timings,
+        champions=champions,
+    )
 
 
 def save_config(config: Config, path: Path = CONFIG_PATH) -> None:
@@ -61,6 +67,11 @@ def save_config(config: Config, path: Path = CONFIG_PATH) -> None:
     for champ in config.champions:
         classes.setdefault(champ.cls, []).append({"name": champ.name, "enabled": champ.enabled})
 
-    raw = {"hotkey": config.hotkey, "timings": config.timings, "classes": classes}
+    raw = {
+        "hotkey": config.hotkey,
+        "default_username": config.default_username,
+        "timings": config.timings,
+        "classes": classes,
+    }
     with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(raw, f, sort_keys=False, allow_unicode=True)
