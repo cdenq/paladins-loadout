@@ -23,7 +23,7 @@ classes:
     - name: Imani
       enabled: false
     - name: Kinessa
-      enabled: false
+      enabled: true
     - name: Lian
       enabled: true
     - name: Octavia
