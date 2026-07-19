@@ -1,4 +1,5 @@
-"""Tkinter GUI: a menu of toggleable champion buttons grouped by class,
+"""Tkinter GUI with two pages: a tutorial/requirements page shown on launch,
+and the main page -- a menu of toggleable champion buttons grouped by class
 plus an Import button (also triggerable via a global hotkey).
 
 Button colors:
@@ -15,7 +16,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox
 
-from src.config import CLASS_ORDER, Config, load_config
+from src.config import CLASS_ORDER, Config, load_config, save_config
 from src.hotkey import GlobalHotkey
 from src.interrupt import RunStopped
 from src.interrupt import reset as reset_stop
@@ -38,6 +39,7 @@ def _resource_dir() -> Path:
 
 
 LOGO_PATH = _resource_dir() / "assets" / "tofu.png"
+TUTORIAL_IMAGE_PATH = _resource_dir() / "assets" / "image.png"
 
 # When True, Import prints "clicked" instead of driving the game window.
 DEV_MODE = False
@@ -54,16 +56,99 @@ class App:
         self._buttons: dict[str, tk.Button] = {}
         self._running = False
 
-        self._build_layout()
+        # Two pages live under root; only one is packed at a time (see
+        # _show_tutorial / _show_main). The tutorial shows on launch unless the
+        # user previously ticked "never show again".
+        self.tutorial_page = tk.Frame(self.root)
+        self.main_page = tk.Frame(self.root)
+        self._build_tutorial_page(self.tutorial_page)
+        self._build_main_page(self.main_page)
+
+        if self.config.skip_tutorial:
+            self._show_main()
+        else:
+            self._show_tutorial()
 
         self.hotkey = GlobalHotkey(self.config.hotkey, self._handle_hotkey_threadsafe)
         self.hotkey.start()
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
-    # ---- layout ----------------------------------------------------
+    # ---- page switching --------------------------------------------
 
-    def _build_layout(self) -> None:
-        top = tk.Frame(self.root)
+    def _show_tutorial(self) -> None:
+        self.main_page.pack_forget()
+        self.tutorial_page.pack(fill="both", expand=True)
+
+    def _show_main(self) -> None:
+        self.tutorial_page.pack_forget()
+        self.main_page.pack(fill="both", expand=True)
+
+    # ---- tutorial page ---------------------------------------------
+
+    def _build_tutorial_page(self, parent: tk.Frame) -> None:
+        header = tk.Frame(parent)
+        header.pack(fill="x", padx=12, pady=(12, 4))
+        self._load_logo(header)
+        tk.Label(
+            header, text="Setup & Requirements", font=("Segoe UI", 14, "bold")
+        ).pack(side="left", padx=(4, 0))
+
+        steps = tk.Label(
+            parent,
+            justify="left",
+            anchor="w",
+            font=("Segoe UI", 10),
+            text=(
+                "Before importing, make sure:\n\n"
+                "  1. Paladins is launched and sitting on the HOME screen (Champions selection is visible; shown below).\n\n"
+                "  2. Your display resolution is 1920 x 1080. Change this in Paladins Settings.\n\n"
+                "  3. The display mode is Fullscreen, OR Borderless Window with the\n"
+                "     window sized to fill the whole screen."
+            ),
+        )
+        steps.pack(fill="x", padx=16, pady=(4, 8))
+
+        self._load_tutorial_image(parent)
+
+        controls = tk.Frame(parent)
+        controls.pack(fill="x", padx=12, pady=12)
+        tk.Button(
+            controls,
+            text="Never show again",
+            command=self._tutorial_never_show_again,
+        ).pack(side="left")
+        tk.Button(
+            controls,
+            text="Got it",
+            bg=COLOR_ON,
+            font=("Segoe UI", 10, "bold"),
+            command=self._show_main,
+        ).pack(side="right")
+
+    def _load_tutorial_image(self, parent: tk.Widget) -> None:
+        """Show assets/image.png (the Paladins home screen) on the tutorial
+        page, scaled to fit. Skips silently if missing/unreadable."""
+        try:
+            img = tk.PhotoImage(file=str(TUTORIAL_IMAGE_PATH))
+        except Exception:
+            return
+        # Scale down to ~560px wide so it fits the window. Integer subsample.
+        factor = max(1, img.width() // 560)
+        self._tutorial_image = img.subsample(factor, factor)  # keep a ref
+        tk.Label(parent, image=self._tutorial_image).pack(padx=12, pady=(0, 8))
+
+    def _tutorial_never_show_again(self) -> None:
+        self.config.skip_tutorial = True
+        try:
+            save_config(self.config)
+        except Exception as exc:  # don't block the app if the write fails
+            print(f"Could not save skip_tutorial preference: {exc}")
+        self._show_main()
+
+    # ---- main page -------------------------------------------------
+
+    def _build_main_page(self, parent: tk.Frame) -> None:
+        top = tk.Frame(parent)
         top.pack(fill="x", padx=8, pady=(8, 4))
         top.columnconfigure(0, weight=1)
         top.columnconfigure(1, weight=1)
@@ -132,7 +217,7 @@ class App:
             self._slot_buttons.append(btn)
         self._refresh_slots()
 
-        classes_frame = tk.Frame(self.root)
+        classes_frame = tk.Frame(parent)
         classes_frame.pack(fill="both", expand=True, padx=8, pady=4)
         columns = 2
         for col in range(columns):
@@ -141,15 +226,21 @@ class App:
         for i, cls in enumerate(CLASS_ORDER):
             self._build_class_section(classes_frame, cls, row=i // columns, column=i % columns)
 
-        run_frame = tk.Frame(self.root)
+        run_frame = tk.Frame(parent)
         run_frame.pack(fill="x", padx=8, pady=8)
+
+        tk.Button(
+            run_frame,
+            text="How to setup?",
+            command=self._show_tutorial,
+        ).pack(fill="x", pady=(0, 4))
 
         # "Setup Needed" toggle: on (default) runs the one-time in-game
         # setup phase before importing; off skips straight to imports.
         self.setup_needed = True
         self.setup_needed_button = tk.Button(
             run_frame,
-            text="Setup Needed: ON",
+            text="First time running THIS SESSION: Yes",
             bg=COLOR_ON,
             command=self._toggle_setup_needed,
         )
@@ -165,7 +256,7 @@ class App:
         self.import_button.pack(fill="x")
 
         self.status_var = tk.StringVar(value="Ready.")
-        tk.Label(self.root, textvariable=self.status_var, anchor="w").pack(fill="x", padx=8, pady=(0, 8))
+        tk.Label(parent, textvariable=self.status_var, anchor="w").pack(fill="x", padx=8, pady=(0, 8))
 
     def _load_logo(self, parent: tk.Widget) -> None:
         """Show assets/tofu.png as a logo in the top bar and as the window icon.
@@ -247,9 +338,9 @@ class App:
     def _set_setup_needed(self, on: bool) -> None:
         self.setup_needed = on
         if on:
-            self.setup_needed_button.configure(text="Setup Needed: ON", bg=COLOR_ON)
+            self.setup_needed_button.configure(text="First time running THIS SESSION: Yes", bg=COLOR_ON)
         else:
-            self.setup_needed_button.configure(text="Setup Needed: OFF", bg=COLOR_OFF)
+            self.setup_needed_button.configure(text="First time running THIS SESSION: No", bg=COLOR_OFF)
 
     def _toggle_setup_needed(self) -> None:
         self._set_setup_needed(not self.setup_needed)

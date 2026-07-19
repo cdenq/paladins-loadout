@@ -33,11 +33,11 @@ classes:
     - name: Saati
       enabled: false
     - name: Sha Lin
-      enabled: false
+      enabled: true
     - name: Strix
       enabled: false
     - name: Tiberius
-      enabled: false
+      enabled: true
     - name: Tyra
       enabled: true
     - name: Viktor
@@ -123,7 +123,7 @@ classes:
     - name: Lillith
       enabled: false
     - name: Mal'Damba
-      enabled: false
+      enabled: true
     - name: Moji
       enabled: false
     - name: Pip
@@ -133,4 +133,4 @@ classes:
     - name: Seris
       enabled: true
     - name: Ying
-      enabled: false
+      enabled: true

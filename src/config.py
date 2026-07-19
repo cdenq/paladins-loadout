@@ -64,6 +64,7 @@ class Champion:
 class Config:
     hotkey: str
     default_username: str = ""
+    skip_tutorial: bool = False
     timings: dict[str, float] = field(default_factory=lambda: dict(DEFAULT_TIMINGS))
     champions: list[Champion] = field(default_factory=list)
 
@@ -89,6 +90,7 @@ def load_config(path: Path = CONFIG_PATH) -> Config:
     return Config(
         hotkey=raw.get("hotkey", "f1"),
         default_username=raw.get("default_username", ""),
+        skip_tutorial=bool(raw.get("skip_tutorial", False)),
         timings=timings,
         champions=champions,
     )
@@ -102,6 +104,7 @@ def save_config(config: Config, path: Path = CONFIG_PATH) -> None:
     raw = {
         "hotkey": config.hotkey,
         "default_username": config.default_username,
+        "skip_tutorial": config.skip_tutorial,
         "timings": config.timings,
         "classes": classes,
     }
