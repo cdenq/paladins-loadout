@@ -21,7 +21,7 @@ classes:
     - name: Drogoz
       enabled: false
     - name: Imani
-      enabled: false
+      enabled: true
     - name: Kinessa
       enabled: true
     - name: Lian
@@ -49,13 +49,13 @@ classes:
 
   Flank:
     - name: Androxus
-      enabled: false
+      enabled: true
     - name: Buck
       enabled: true
     - name: Caspian
       enabled: false
     - name: Evie
-      enabled: false
+      enabled: true
     - name: Kasumi
       enabled: false
     - name: Koga
