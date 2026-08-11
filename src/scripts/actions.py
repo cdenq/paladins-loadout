@@ -67,6 +67,39 @@ def press_key(key, delay: float = CLICK_LOAD) -> None:
     _sleep(delay)
 
 
+def hold_key(key, duration: float, delay: float = CLICK_LOAD) -> None:
+    """Hold a key down for `duration` seconds.
+
+    Note this only produces ONE keystroke in games that read raw key state
+    instead of the OS's auto-repeat (Paladins among them) -- use tap_key()
+    when you need N discrete presses, e.g. clearing a text field.
+    """
+    check_stop()
+    _keyboard.press(key)
+    try:
+        _sleep(duration)
+    finally:
+        # Release even if a stop unwinds mid-hold, so the key isn't left stuck.
+        _keyboard.release(key)
+    _sleep(delay)
+
+
+def tap_key(key, times: int, interval: float = 0.03, delay: float = CLICK_LOAD) -> None:
+    """Press and release a key `times` times, as discrete keystrokes.
+
+    Preferred over hold_key() for repeat input: the game registers each
+    press/release pair, whereas a held key relies on OS auto-repeat that
+    Paladins ignores.
+    """
+    for _ in range(times):
+        check_stop()
+        _keyboard.press(key)
+        _sleep(interval)
+        _keyboard.release(key)
+        _sleep(interval)
+    _sleep(delay)
+
+
 def wait(seconds: float) -> None:
     """Sleep in small increments so a stop request during a long wait (e.g.
     LONG_LOAD) is noticed promptly instead of only after it fully elapses."""

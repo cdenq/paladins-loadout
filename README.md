@@ -4,26 +4,20 @@
 
 Bulk Paladins loadout importer from a source account with GUI. It'll automate your mouse clicks to import selected champion loadouts from a target account.
 
-## Prerequisites
-
-- Windows
-- Monitor 1920x1080 resolution
-- Paladins on primary monitor, at Home Screen
-
 ## Installation
 
-### Easiest
+### From Build (Recommended)
 Download **`PaladinsLoadout.exe`**; double-click to run, edit `config.yml` to change the timings.
 
 > On first run Windows may show a blue "Windows protected your PC" screen (the
 > app isn't code-signed). Click **More info -> Run anyway**.
 
-### Manual
+### From Source
 
-Use `run.bat`
+1. **Use `run.bat`**
 > Double-click **`run.bat`**. It will install `uv` if you don't have it and then launch the app.
 
-Use CLI: three ways to install: via `uv`, `conda`, `pip`.
+2. **Use CLI**: three ways to install: via `uv`, `conda`, `pip`.
 
 ```bash
 # uv + gitbash (recommended)
@@ -50,10 +44,20 @@ python main.py
 
 ## Usage
 
-1. Monitor resolution 1920x1080
-2. Paladins fullscreen or borderless windowed
-3. Paladins @ the home screen
-2. Click "import" or hit F1 (default hotkey)
+### Prerequisites
+- on Windows
+- Paladins resolution 1920x1080
+- Paladins on primary monitor
+- Paladins is launched and at the Home Screen
 
-## Import messes up?
-If imports mess up, then delay time between clicks is too short. Edit these in config.yml to be longer to ensure that menus load ingame before you click.
+### Features
+- Give any "source username" and it will import from that account
+- Auto-import all loadouts from multiple champions (it will take control of your mouse)
+> F1 (default hotkey) to start import on the selected champions; F2 (default hotkey) to interrupt any ongoing import
+- Import selected loadouts from one champion (e.g., "I only want loadouts 1,4,7-9 from Inara")
+- After the first time running the application this session, auto-switch to a "speedy" import that will skip setting up of the champion selection screen and typing in the name of the account on each successive loadout import
+
+## Troubleshooting
+- Double-check that you have your Paladins in the right resolution & display mode (see pre-reqs)
+- Simply interrupt/cancel the import, return to homescreen, and try again; Paladins sometimes bugs out
+- If it messes up multiple times, see if the delay time between the auto-clicks is too short. You can manually edit these delays in config.yml to be longer to ensure that menus load ingame before you click (i.e. if your computer or the Paladins server is slow to load.)

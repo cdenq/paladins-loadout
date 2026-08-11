@@ -1,4 +1,4 @@
-"""Load and save config.yml: hotkey setting + champion roster by class."""
+"""Load and save config.yml: hotkey settings + champion roster by class."""
 
 from __future__ import annotations
 
@@ -63,6 +63,10 @@ class Champion:
 @dataclass
 class Config:
     hotkey: str
+    # Separate from `hotkey` on purpose: a dedicated stop key means pressing it
+    # interrupts every running instance at once, rather than each instance's
+    # trigger key toggling that instance between start and stop.
+    interrupt_hotkey: str = "f2"
     default_username: str = ""
     skip_tutorial: bool = False
     timings: dict[str, float] = field(default_factory=lambda: dict(DEFAULT_TIMINGS))
@@ -89,6 +93,7 @@ def load_config(path: Path = CONFIG_PATH) -> Config:
 
     return Config(
         hotkey=raw.get("hotkey", "f1"),
+        interrupt_hotkey=raw.get("interrupt_hotkey", "f2"),
         default_username=raw.get("default_username", ""),
         skip_tutorial=bool(raw.get("skip_tutorial", False)),
         timings=timings,
@@ -103,6 +108,7 @@ def save_config(config: Config, path: Path = CONFIG_PATH) -> None:
 
     raw = {
         "hotkey": config.hotkey,
+        "interrupt_hotkey": config.interrupt_hotkey,
         "default_username": config.default_username,
         "skip_tutorial": config.skip_tutorial,
         "timings": config.timings,

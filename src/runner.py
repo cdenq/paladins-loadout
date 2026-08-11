@@ -18,6 +18,7 @@ from src.config import Champion
 from src.interrupt import check as check_stop
 from src.scripts.loadout_import import import_loadout_slot
 from src.scripts.loadout_menu import go_to_loadout_slot, go_to_loadouts_tab, finish_loadouts
+from src.scripts.loadout_wipe import build_wipe_loadout
 from src.scripts.setup import run_setup, click_champions
 from src.scripts.traffic_director import go_to_champion, go_to_class
 from src.state import ToggleState
@@ -86,3 +87,17 @@ def run_import(
 
         if on_progress:
             on_progress(champ)
+
+
+def run_wipe() -> None:
+    """Rebuild the loadout that's already open on screen.
+
+    Unlike run_import this does no navigating and touches no champion
+    selection: it assumes the user has already opened the loadout slot they
+    want wiped, then clears it and lays down the fixed card set (see
+    src/scripts/loadout_wipe.py). Saving and renaming are left to the user,
+    since the "Change Loadout Name" button isn't at a fixed position.
+    """
+    check_stop()
+    focus_paladins()
+    build_wipe_loadout()

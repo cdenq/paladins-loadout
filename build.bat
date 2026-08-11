@@ -24,7 +24,7 @@ if errorlevel 1 goto :fail
 
 echo.
 echo [3/4] Generating window icon from assets\tofu.png...
-uvx --from pillow python make_icon.py
+uvx --from pillow python src\scripts\make_icon.py
 if errorlevel 1 echo WARNING: icon generation failed; building without a custom icon.
 
 echo.

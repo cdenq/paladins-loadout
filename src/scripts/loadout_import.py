@@ -42,11 +42,16 @@ SAVE_OVERWRITE = (854, 941)
 NEXT_LOADOUT_BUTTON = (1030, 738)
 
 
+def clear_loadout() -> None:
+    """Click "Clear All" on the open loadout. Shared with the wipe phase,
+    which diverges from the import path immediately after this click."""
+    click(*CLEAR_ALL, delay=CLICK_LOAD)
+
+
 def _search_account(account_name: str | None) -> None:
     """Search for the source account. If account_name is given, type it in
     first (the very first loadout-import of the run); otherwise just
     re-confirm the search with the name already cached from before."""
-    click(*CLEAR_ALL, delay=CLICK_LOAD)
     click(*IMPORT_BUTTON, delay=CLICK_LOAD)
     click(*SEARCH_BY_NAME, delay=CLICK_LOAD)
     if account_name is not None:
@@ -70,6 +75,7 @@ def import_loadout_slot(slot_index: int, account_name: str | None = None) -> Non
     loadout-import of the entire run (types it in); pass None for every
     other call so it just re-searches with the cached name.
     """
+    clear_loadout()
     _search_account(account_name)
     _advance_to_loadout(slot_index)
     click(*FINALIZE_IMPORT, delay=SHORT_LOAD)

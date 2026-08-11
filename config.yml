@@ -1,4 +1,5 @@
 hotkey: f1
+interrupt_hotkey: f2  # stops a run; separate from `hotkey` so one press halts every open instance
 default_username: "TofuCookie"
 
 timings:
@@ -97,7 +98,7 @@ classes:
     - name: Nyx
       enabled: false
     - name: Raum
-      enabled: false
+      enabled: true
     - name: Ruckus
       enabled: true
     - name: Terminus
@@ -113,7 +114,7 @@ classes:
     - name: Furia
       enabled: true
     - name: Grohk
-      enabled: false
+      enabled: true
     - name: Grover
       enabled: true
     - name: Io

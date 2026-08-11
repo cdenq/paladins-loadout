@@ -1,0 +1,50 @@
+[
+  {
+    "t": 1.646748699946329,
+    "type": "click",
+    "x": 388,
+    "y": 741,
+    "button": "left",
+    "pressed": true
+  },
+  {
+    "t": 1.7753969000186771,
+    "type": "click",
+    "x": 388,
+    "y": 741,
+    "button": "left",
+    "pressed": false
+  },
+  {
+    "t": 2.518340399954468,
+    "type": "click",
+    "x": 707,
+    "y": 723,
+    "button": "left",
+    "pressed": true
+  },
+  {
+    "t": 2.6283927999902517,
+    "type": "click",
+    "x": 707,
+    "y": 723,
+    "button": "left",
+    "pressed": false
+  },
+  {
+    "t": 3.712424600031227,
+    "type": "click",
+    "x": 1016,
+    "y": 708,
+    "button": "left",
+    "pressed": true
+  },
+  {
+    "t": 3.81039909995161,
+    "type": "click",
+    "x": 1016,
+    "y": 708,
+    "button": "left",
+    "pressed": false
+  }
+]

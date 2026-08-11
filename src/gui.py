@@ -21,12 +21,13 @@ from src.hotkey import GlobalHotkey
 from src.interrupt import RunStopped
 from src.interrupt import reset as reset_stop
 from src.interrupt import request_stop
-from src.runner import run_import
+from src.runner import run_import, run_wipe
 from src.state import NUM_LOADOUT_SLOTS, ToggleState
 
 COLOR_ON = "#a6e3a1"
 COLOR_OFF = "#f2a6a6"
 COLOR_DISABLED = "#d3d3d3"
+COLOR_ACCENT = "#89b4fa"
 
 
 def _resource_dir() -> Path:
@@ -71,6 +72,13 @@ class App:
 
         self.hotkey = GlobalHotkey(self.config.hotkey, self._handle_hotkey_threadsafe)
         self.hotkey.start()
+        # A separate stop key (default F2), so pressing it halts every running
+        # instance at once instead of each instance's trigger key toggling only
+        # its own start/stop.
+        self.interrupt_hotkey = GlobalHotkey(
+            self.config.interrupt_hotkey, self._handle_interrupt_threadsafe
+        )
+        self.interrupt_hotkey.start()
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     # ---- page switching --------------------------------------------
@@ -171,6 +179,29 @@ class App:
         tk.Button(global_controls, text="Toggle All On", command=lambda: self._set_all(True)).pack(side="left")
         tk.Button(global_controls, text="Toggle All Off", command=lambda: self._set_all(False)).pack(side="left", padx=(4, 0))
 
+        # Switches what the run key does (wipe the open loadout vs. import).
+        # It deliberately does NOT change which champions are selectable --
+        # a wipe acts on whatever loadout is already open in-game.
+        self.wipe_mode_button = tk.Button(
+            left,
+            text="Toggle Loadout-Wipe Mode: Off",
+            bg=COLOR_ACCENT,
+            command=self._toggle_wipe_mode,
+        )
+        self.wipe_mode_button.pack(fill="x", pady=(4, 0))
+
+        # Sits directly under the wipe toggle; empty (hidden) when the mode is off.
+        self.wipe_banner_var = tk.StringVar(value="")
+        tk.Label(
+            left,
+            textvariable=self.wipe_banner_var,
+            fg="#b45309",
+            font=("Segoe UI", 9, "bold"),
+            wraplength=300,
+            justify="left",
+            anchor="w",
+        ).pack(fill="x", pady=(2, 0))
+
         # Shown only in specific-loadout mode; empty (hidden) otherwise.
         self.banner_var = tk.StringVar(value="")
         self.banner_label = tk.Label(
@@ -246,12 +277,14 @@ class App:
         )
         self.setup_needed_button.pack(fill="x", pady=(0, 4))
 
+        # The button still doubles as start/stop for this instance; the hotkeys
+        # are split so the stop key can halt every instance at once.
         self.import_button = tk.Button(
             run_frame,
-            text=f"Import ({self.config.hotkey.upper()})",
-            bg="#89b4fa",
+            text=self._run_button_text(),
+            bg=COLOR_ACCENT,
             font=("Segoe UI", 12, "bold"),
-            command=self._handle_hotkey_threadsafe,
+            command=self._handle_run_button,
         )
         self.import_button.pack(fill="x")
 
@@ -291,9 +324,9 @@ class App:
         champs = self.config.by_class(cls)
         columns = 3
         for i, champ in enumerate(champs):
-            btn = tk.Button(grid, text=champ.name, width=16)
-            if champ.enabled:
-                btn.configure(command=lambda c=champ: self._toggle(c))
+            # Every button gets a command; eligibility is enforced by the
+            # disabled state in _refresh_button, which wipe mode can lift.
+            btn = tk.Button(grid, text=champ.name, width=16, command=lambda c=champ: self._toggle(c))
             self._buttons[champ.name] = btn
             btn.grid(row=i // columns, column=i % columns, padx=2, pady=2)
 
@@ -312,7 +345,7 @@ class App:
     def _refresh_button(self, name: str) -> None:
         champ = next(c for c in self.config.champions if c.name == name)
         btn = self._buttons[name]
-        if not champ.enabled:
+        if not self.state.is_eligible(champ):
             btn.configure(bg=COLOR_DISABLED, state="disabled")
         else:
             btn.configure(state="normal")
@@ -345,20 +378,56 @@ class App:
     def _toggle_setup_needed(self) -> None:
         self._set_setup_needed(not self.setup_needed)
 
-    def _toggle_specific_mode(self) -> None:
-        on = not self.state.specific_mode
-        # Entering the mode clears all champion selections (only one allowed).
-        self.state.set_specific_mode(on)
-        if on:
-            self.specific_mode_button.configure(text="Specific Loadouts Only: ON", bg=COLOR_ON)
-            self.banner_var.set(
-                "For this mode, only ONE champion can be imported at a time."
-            )
-        else:
-            self.specific_mode_button.configure(text="Specific Loadouts Only: OFF", bg=COLOR_OFF)
-            self.banner_var.set("")
+    def _run_button_text(self) -> str:
+        action = "Wipe Loadouts" if self.state.wipe_mode else "Import"
+        return f"{action} ({self.config.hotkey.upper()})"
+
+    def _refresh_modes(self) -> None:
+        """Repaint both mode toggles, their banners, and everything the modes
+        affect. Driven off state rather than the click handlers, since the two
+        modes are mutually exclusive and each click can change both."""
+        wipe, specific = self.state.wipe_mode, self.state.specific_mode
+
+        self.wipe_mode_button.configure(
+            text=f"Toggle Loadout-Wipe Mode: {'On' if wipe else 'Off'}",
+            bg=COLOR_ON if wipe else COLOR_ACCENT,
+        )
+        self.wipe_banner_var.set(
+            f"Open the loadout you want wiped in-game, then press "
+            f"{self.config.hotkey.upper()}. Rename and save it yourself afterwards."
+            if wipe
+            else ""
+        )
+
+        self.specific_mode_button.configure(
+            text=f"Specific Loadouts Only: {'ON' if specific else 'OFF'}",
+            bg=COLOR_ON if specific else COLOR_OFF,
+        )
+        self.banner_var.set(
+            "For this mode, only ONE champion can be imported at a time." if specific else ""
+        )
+
+        self.import_button.configure(text=self._run_button_text())
         self._refresh_all()
         self._refresh_slots()
+
+    def _toggle_wipe_mode(self) -> None:
+        on = not self.state.wipe_mode
+        # Mutually exclusive with specific-loadouts mode: that one narrows an
+        # import, and a wipe replaces the import entirely.
+        if on and self.state.specific_mode:
+            self.state.set_specific_mode(False)
+        self.state.set_wipe_mode(on)
+        self._refresh_modes()
+
+    def _toggle_specific_mode(self) -> None:
+        on = not self.state.specific_mode
+        # Entering the mode clears all champion selections (only one allowed)
+        # and drops wipe mode, which is mutually exclusive with it.
+        if on and self.state.wipe_mode:
+            self.state.set_wipe_mode(False)
+        self.state.set_specific_mode(on)
+        self._refresh_modes()
 
     def _toggle_slot(self, slot_index: int) -> None:
         self.state.toggle_slot(slot_index)
@@ -383,20 +452,46 @@ class App:
         self.root.after(0, self._handle_hotkey)
 
     def _handle_hotkey(self) -> None:
+        # The trigger key only ever starts a run -- stopping is the interrupt
+        # key's job, so a stray second press can't cancel the run it started.
+        if not self._running:
+            self._start_import()
+
+    def _handle_run_button(self) -> None:
         if self._running:
             self._stop_import()
         else:
             self._start_import()
+
+    def _handle_interrupt_threadsafe(self) -> None:
+        self.root.after(0, self._handle_interrupt)
+
+    def _handle_interrupt(self) -> None:
+        if self._running:
+            self._stop_import()
 
     def _start_import(self) -> None:
         if DEV_MODE:
             print("clicked")
             return
 
+        # Wipe mode acts on whichever loadout is already open in-game, so it
+        # needs no champion selection, account name, or slot choice.
+        if self.state.wipe_mode:
+            reset_stop()
+            self._running = True
+            self.import_button.configure(
+                text=f"Stop ({self.config.interrupt_hotkey.upper()})", bg=COLOR_OFF
+            )
+            self.status_var.set("Wiping the open loadout...")
+            threading.Thread(target=self._run_wipe_worker, daemon=True).start()
+            return
+
         selected = self.state.selected_champions()
         if not selected:
             messagebox.showinfo("Nothing to import", "No champions are toggled on.")
             return
+
         if not self.account_var.get().strip():
             messagebox.showwarning("Missing account name", "Enter the source account name first.")
             return
@@ -409,7 +504,7 @@ class App:
 
         reset_stop()
         self._running = True
-        self.import_button.configure(text=f"Stop ({self.config.hotkey.upper()})", bg=COLOR_OFF)
+        self.import_button.configure(text=f"Stop ({self.config.interrupt_hotkey.upper()})", bg=COLOR_OFF)
         self.status_var.set(f"Importing 0/{len(selected)}...")
 
         thread = threading.Thread(
@@ -420,6 +515,21 @@ class App:
     def _stop_import(self) -> None:
         self.status_var.set("Stopping...")
         request_stop()
+
+    def _run_wipe_worker(self) -> None:
+        try:
+            run_wipe()
+            print("Done. Wiped the open loadout.")
+            self.root.after(
+                0,
+                lambda: self.status_var.set("Done. Rename and save it in-game."),
+            )
+        except RunStopped:
+            self.root.after(0, lambda: self.status_var.set("Stopped."))
+        except Exception as exc:  # surface script errors instead of failing silently
+            self.root.after(0, lambda: self.status_var.set(f"Error: {exc}"))
+        finally:
+            self.root.after(0, self._finish_import)
 
     def _run_import_worker(self, selected, slot_indices=None) -> None:
         account_name = self.account_var.get().strip()
@@ -450,7 +560,7 @@ class App:
 
     def _finish_import(self) -> None:
         self._running = False
-        self.import_button.configure(text=f"Import ({self.config.hotkey.upper()})", bg="#89b4fa")
+        self.import_button.configure(text=self._run_button_text(), bg=COLOR_ACCENT)
         # Setup runs once per session, so turn it off after the first run.
         if self.setup_needed:
             self._set_setup_needed(False)
@@ -459,6 +569,7 @@ class App:
 
     def _on_close(self) -> None:
         self.hotkey.stop()
+        self.interrupt_hotkey.stop()
         self.root.destroy()
 
 

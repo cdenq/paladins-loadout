@@ -17,14 +17,20 @@ NUM_LOADOUT_SLOTS = 9
 class ToggleState:
     def __init__(self, config: Config):
         self.config = config
-        # Only eligible (enabled) champions can be toggled; default them off.
-        self._on: dict[str, bool] = {c.name: False for c in config.champions if c.enabled}
+        # Tracks every champion, since wipe mode can make config-disabled ones
+        # selectable too; is_eligible() gates who may actually be toggled.
+        self._on: dict[str, bool] = {c.name: False for c in config.champions}
 
         # "Specific loadout" mode: import a chosen subset of the 9 loadout slots
         # for a single champion, instead of all 9 for any number of champions.
         # `_slots` holds the 0-based slot indices to import.
         self.specific_mode: bool = False
         self._slots: set[int] = set()
+
+        # "Loadout wipe" mode: the run wipes whichever loadout is already open
+        # in-game instead of importing. It's purely a choice of action -- it
+        # doesn't affect which champions are selectable.
+        self.wipe_mode: bool = False
 
     def is_eligible(self, champ: Champion) -> bool:
         return champ.enabled
@@ -48,18 +54,19 @@ class ToggleState:
         return new_state
 
     def set_all(self, on: bool) -> None:
-        for name in self._on:
-            self._on[name] = on
+        for champ in self.config.champions:
+            if self.is_eligible(champ):
+                self._on[champ.name] = on
 
     def set_section(self, cls: str, on: bool) -> None:
         for champ in self.config.by_class(cls):
-            if champ.name in self._on:
+            if self.is_eligible(champ):
                 self._on[champ.name] = on
 
     def selected_champions(self) -> list[Champion]:
         """All champions currently toggled on, ordered by CLASS_ORDER so each
         class's tab only needs to be clicked once during a run."""
-        selected = [c for c in self.config.champions if self.is_on(c)]
+        selected = [c for c in self.config.champions if self.is_eligible(c) and self.is_on(c)]
         return sorted(selected, key=lambda c: CLASS_ORDER.index(c.cls))
 
     # ---- specific-loadout mode --------------------------------------
@@ -73,6 +80,14 @@ class ToggleState:
         if on:
             self.set_all(False)
             self._slots.clear()
+
+    # ---- loadout-wipe mode -------------------------------------------
+
+    def set_wipe_mode(self, on: bool) -> None:
+        """Enter/leave loadout-wipe mode. Champion selections are left alone --
+        a wipe ignores them entirely, so toggling the mode shouldn't discard an
+        import roster the user already picked."""
+        self.wipe_mode = on
 
     def toggle_slot(self, slot_index: int) -> bool:
         """Flip a loadout slot (0-based) on/off for specific mode. Returns the
