@@ -1,0 +1,82 @@
+[
+  {
+    "t": 1.1276055000489578,
+    "type": "click",
+    "x": 707,
+    "y": 634,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 1.2495806999504566,
+    "type": "click",
+    "x": 707,
+    "y": 634,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 2.2676312000257894,
+    "type": "click",
+    "x": 705,
+    "y": 703,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 2.411666000029072,
+    "type": "click",
+    "x": 705,
+    "y": 703,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 3.399629099993035,
+    "type": "click",
+    "x": 705,
+    "y": 765,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 3.5046983000356704,
+    "type": "click",
+    "x": 705,
+    "y": 765,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 4.618560799979605,
+    "type": "click",
+    "x": 710,
+    "y": 828,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 4.718624199973419,
+    "type": "click",
+    "x": 710,
+    "y": 828,
+    "button": "right",
+    "pressed": false
+  },
+  {
+    "t": 5.745647000032477,
+    "type": "click",
+    "x": 707,
+    "y": 888,
+    "button": "right",
+    "pressed": true
+  },
+  {
+    "t": 5.855630500009283,
+    "type": "click",
+    "x": 701,
+    "y": 897,
+    "button": "right",
+    "pressed": false
+  }
+]

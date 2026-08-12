@@ -32,6 +32,11 @@ class ToggleState:
         # doesn't affect which champions are selectable.
         self.wipe_mode: bool = False
 
+        # "Mass report" mode: the run reports the player in a chosen
+        # scoreboard position instead of importing. Also purely a choice of
+        # action; mutually exclusive with the other modes.
+        self.report_mode: bool = False
+
     def is_eligible(self, champ: Champion) -> bool:
         return champ.enabled
 
@@ -88,6 +93,13 @@ class ToggleState:
         a wipe ignores them entirely, so toggling the mode shouldn't discard an
         import roster the user already picked."""
         self.wipe_mode = on
+
+    # ---- mass-report mode --------------------------------------------
+
+    def set_report_mode(self, on: bool) -> None:
+        """Enter/leave mass-report mode. Like wipe mode this only changes what
+        the run key does, so champion selections are left untouched."""
+        self.report_mode = on
 
     def toggle_slot(self, slot_index: int) -> bool:
         """Flip a loadout slot (0-based) on/off for specific mode. Returns the

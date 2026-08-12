@@ -21,7 +21,8 @@ from src.hotkey import GlobalHotkey
 from src.interrupt import RunStopped
 from src.interrupt import reset as reset_stop
 from src.interrupt import request_stop
-from src.runner import run_import, run_wipe
+from src.runner import run_import, run_mass_report, run_wipe
+from src.scripts.mass_report import NUM_POSITIONS as NUM_REPORT_POSITIONS
 from src.state import NUM_LOADOUT_SLOTS, ToggleState
 
 COLOR_ON = "#a6e3a1"
@@ -195,6 +196,44 @@ class App:
         tk.Label(
             left,
             textvariable=self.wipe_banner_var,
+            fg="#b45309",
+            font=("Segoe UI", 9, "bold"),
+            wraplength=300,
+            justify="left",
+            anchor="w",
+        ).pack(fill="x", pady=(2, 0))
+
+        # Reports the player in a chosen scoreboard position (1-5). Like wipe
+        # mode this only chooses what the run key does.
+        self.report_mode_button = tk.Button(
+            left,
+            text="Toggle Mass Report: Off",
+            bg=COLOR_ACCENT,
+            command=self._toggle_report_mode,
+        )
+        self.report_mode_button.pack(fill="x", pady=(4, 0))
+
+        # Which scoreboard row to report; only meaningful in mass-report mode.
+        self.report_position_frame = tk.Frame(left)
+        self.report_position_frame.pack(fill="x", pady=(2, 0))
+        tk.Label(self.report_position_frame, text="Position:").pack(side="left")
+        self.report_position_var = tk.IntVar(value=1)
+        self._report_position_buttons: list[tk.Button] = []
+        for position in range(1, NUM_REPORT_POSITIONS + 1):
+            btn = tk.Button(
+                self.report_position_frame,
+                text=str(position),
+                width=3,
+                command=lambda p=position: self._set_report_position(p),
+            )
+            btn.pack(side="left", padx=(4, 0))
+            self._report_position_buttons.append(btn)
+        self._refresh_report_positions()
+
+        self.report_banner_var = tk.StringVar(value="")
+        tk.Label(
+            left,
+            textvariable=self.report_banner_var,
             fg="#b45309",
             font=("Segoe UI", 9, "bold"),
             wraplength=300,
@@ -379,14 +418,21 @@ class App:
         self._set_setup_needed(not self.setup_needed)
 
     def _run_button_text(self) -> str:
-        action = "Wipe Loadouts" if self.state.wipe_mode else "Import"
+        if self.state.report_mode:
+            action = "Mass Report"
+        elif self.state.wipe_mode:
+            action = "Wipe Loadouts"
+        else:
+            action = "Import"
         return f"{action} ({self.config.hotkey.upper()})"
 
     def _refresh_modes(self) -> None:
-        """Repaint both mode toggles, their banners, and everything the modes
-        affect. Driven off state rather than the click handlers, since the two
-        modes are mutually exclusive and each click can change both."""
-        wipe, specific = self.state.wipe_mode, self.state.specific_mode
+        """Repaint every mode toggle, its banner, and everything the modes
+        affect. Driven off state rather than the click handlers, since the
+        modes are mutually exclusive and one click can change several."""
+        wipe = self.state.wipe_mode
+        specific = self.state.specific_mode
+        report = self.state.report_mode
 
         self.wipe_mode_button.configure(
             text=f"Toggle Loadout-Wipe Mode: {'On' if wipe else 'Off'}",
@@ -398,6 +444,20 @@ class App:
             if wipe
             else ""
         )
+
+        self.report_mode_button.configure(
+            text=f"Toggle Mass Report: {'On' if report else 'Off'}",
+            bg=COLOR_ON if report else COLOR_ACCENT,
+        )
+        self.report_banner_var.set(
+            f"Open the scoreboard in-game, then press "
+            f"{self.config.hotkey.upper()} to report position "
+            f"{self.report_position_var.get()} on repeat. "
+            f"{self.config.interrupt_hotkey.upper()} stops it."
+            if report
+            else ""
+        )
+        self._refresh_report_positions()
 
         self.specific_mode_button.configure(
             text=f"Specific Loadouts Only: {'ON' if specific else 'OFF'}",
@@ -411,23 +471,42 @@ class App:
         self._refresh_all()
         self._refresh_slots()
 
-    def _toggle_wipe_mode(self) -> None:
-        on = not self.state.wipe_mode
-        # Mutually exclusive with specific-loadouts mode: that one narrows an
-        # import, and a wipe replaces the import entirely.
-        if on and self.state.specific_mode:
-            self.state.set_specific_mode(False)
-        self.state.set_wipe_mode(on)
+    def _refresh_report_positions(self) -> None:
+        """Color the 5 position chips; disable them outside mass-report mode."""
+        chosen = self.report_position_var.get()
+        for i, btn in enumerate(self._report_position_buttons, start=1):
+            if not self.state.report_mode:
+                btn.configure(state="disabled", bg=COLOR_DISABLED)
+            else:
+                btn.configure(state="normal", bg=COLOR_ON if i == chosen else COLOR_OFF)
+
+    def _set_report_position(self, position: int) -> None:
+        self.report_position_var.set(position)
         self._refresh_modes()
 
-    def _toggle_specific_mode(self) -> None:
-        on = not self.state.specific_mode
-        # Entering the mode clears all champion selections (only one allowed)
-        # and drops wipe mode, which is mutually exclusive with it.
-        if on and self.state.wipe_mode:
-            self.state.set_wipe_mode(False)
-        self.state.set_specific_mode(on)
+    def _set_exclusive_mode(self, mode: str | None) -> None:
+        """Turn on exactly one of the mutually exclusive modes (or none).
+
+        They all decide what the run key does -- specific-loadouts narrows an
+        import, while wipe and mass-report replace it -- so at most one may be
+        active at a time.
+        """
+        self.state.set_wipe_mode(mode == "wipe")
+        self.state.set_report_mode(mode == "report")
+        # Entering specific mode clears champion selections (only one allowed),
+        # so only call it when the flag actually changes.
+        if self.state.specific_mode != (mode == "specific"):
+            self.state.set_specific_mode(mode == "specific")
         self._refresh_modes()
+
+    def _toggle_wipe_mode(self) -> None:
+        self._set_exclusive_mode(None if self.state.wipe_mode else "wipe")
+
+    def _toggle_report_mode(self) -> None:
+        self._set_exclusive_mode(None if self.state.report_mode else "report")
+
+    def _toggle_specific_mode(self) -> None:
+        self._set_exclusive_mode(None if self.state.specific_mode else "specific")
 
     def _toggle_slot(self, slot_index: int) -> None:
         self.state.toggle_slot(slot_index)
@@ -475,6 +554,24 @@ class App:
             print("clicked")
             return
 
+        # Mass report acts on the scoreboard that's already open in-game, so
+        # like wipe mode it needs no champion selection or account name.
+        if self.state.report_mode:
+            position = self.report_position_var.get()
+            reset_stop()
+            self._running = True
+            self.import_button.configure(
+                text=f"Stop ({self.config.interrupt_hotkey.upper()})", bg=COLOR_OFF
+            )
+            self.status_var.set(
+                f"Reporting position {position} on repeat... "
+                f"({self.config.interrupt_hotkey.upper()} to stop)"
+            )
+            threading.Thread(
+                target=self._run_report_worker, args=(position,), daemon=True
+            ).start()
+            return
+
         # Wipe mode acts on whichever loadout is already open in-game, so it
         # needs no champion selection, account name, or slot choice.
         if self.state.wipe_mode:
@@ -515,6 +612,36 @@ class App:
     def _stop_import(self) -> None:
         self.status_var.set("Stopping...")
         request_stop()
+
+    def _run_report_worker(self, position: int) -> None:
+        count = {"done": 0}
+
+        def on_progress(passes):
+            count["done"] = passes
+            print(f"Reported position {position} x{passes}.")
+            self.root.after(
+                0,
+                lambda: self.status_var.set(
+                    f"Reported position {position} x{passes}... "
+                    f"({self.config.interrupt_hotkey.upper()} to stop)"
+                ),
+            )
+
+        try:
+            # Loops until the interrupt key raises RunStopped -- reaching the
+            # line after this is not expected.
+            run_mass_report(position, on_progress=on_progress)
+        except RunStopped:
+            self.root.after(
+                0,
+                lambda: self.status_var.set(
+                    f"Stopped after {count['done']} report(s) on position {position}."
+                ),
+            )
+        except Exception as exc:  # surface script errors instead of failing silently
+            self.root.after(0, lambda: self.status_var.set(f"Error: {exc}"))
+        finally:
+            self.root.after(0, self._finish_import)
 
     def _run_wipe_worker(self) -> None:
         try:

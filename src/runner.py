@@ -19,6 +19,7 @@ from src.interrupt import check as check_stop
 from src.scripts.loadout_import import import_loadout_slot
 from src.scripts.loadout_menu import go_to_loadout_slot, go_to_loadouts_tab, finish_loadouts
 from src.scripts.loadout_wipe import build_wipe_loadout
+from src.scripts.mass_report import report_position
 from src.scripts.setup import run_setup, click_champions
 from src.scripts.traffic_director import go_to_champion, go_to_class
 from src.state import ToggleState
@@ -101,3 +102,28 @@ def run_wipe() -> None:
     check_stop()
     focus_paladins()
     build_wipe_loadout()
+
+
+def run_mass_report(
+    position: int,
+    on_progress: Callable[[int], None] | None = None,
+) -> None:
+    """Repeatedly report the player in scoreboard `position` (1-based, 1..5).
+
+    Loops until the interrupt key is pressed -- there's no natural stopping
+    point, so the only exit is RunStopped raised out of a check_stop() (see
+    src/interrupt.py). Like run_wipe it does no navigating: it assumes the
+    scoreboard is already open in-game.
+
+    on_progress: optional callback invoked with the completed pass count.
+    """
+    check_stop()
+    focus_paladins()
+
+    passes = 0
+    while True:
+        check_stop()
+        report_position(position)
+        passes += 1
+        if on_progress:
+            on_progress(passes)
